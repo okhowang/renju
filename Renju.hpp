@@ -51,15 +51,14 @@ public:
     virtual ~Renju();
 
     //初始化棋盘
-    void SetPos(int x, int y, Pos role, std::vector<Pos> *data = nullptr);
+    void SetPos(int x, int y, Pos role);
     //setpos完毕后调用
     void Init();
 
     //计算下一步
-    std::pair<int, int> GetNext(Role role, int deep = 4);
+    std::pair<int, int> GetNext(Role role, int deep = 2);
 private:
-    std::tuple<int, int, int> GetNextImplMT(Role role, int deep);
-    std::tuple<int, int, int> GetNextImpl(Role role, int deep, std::vector<Pos> *data = nullptr);
+    std::tuple<int, int, int> GetNextImpl(Role role, int deep);
     std::vector<Pos> data_;
     bool has_forbid_;
     int size_;
@@ -67,13 +66,13 @@ private:
     int white_count_;
 
     bool IsValidPoint(int x, int y);
-    int ComputeValue(Role role, std::vector<Pos> *data);
-    int ComputePosValue(int x, int y, std::vector<Pos> *data, bool *win = nullptr);
+    int ComputeValue(Role role);
+    int ComputePosValue(int x, int y, bool *win = nullptr);
 
-    Pos &Get(int x, int y, std::vector<Pos> *data = nullptr);
+    Pos &Get(int x, int y);
     Pos GetByRole(Role role);
     bool IsSame(Role role, Pos pos);
-    bool HasNear(int x, int y, std::vector<Pos> *data, const int distance = 2);
+    bool HasNear(int x, int y, const int distance = 2);
     Role GetOpponent(Role role);
 
     static const int direct_list[4][2];

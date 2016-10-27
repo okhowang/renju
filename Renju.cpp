@@ -1,9 +1,11 @@
+
+#include <future>
+#include <vector>
+#include <limits.h>
+#include <stack>
+#include <stdlib.h>
+
 #include "Renju.hpp"
-
-#include <climits>
-
-#include <omp.h>
-
 
 const int Renju::direct_list[4][2] = {
     {1, 0},
@@ -23,10 +25,9 @@ Renju::~Renju()
 {
 }
 
-void Renju::SetPos(int x, int y, Pos role, std::vector<Pos> *data)
+void Renju::SetPos(int x, int y, Pos role)
 {
-    auto &d = data ? *data : data_;
-    auto&pos = Get(x, y, &d);
+    auto&pos = Get(x, y);
     switch (pos)
     {
     case Pos::kBlack:
@@ -91,88 +92,27 @@ std::pair<int, int> Renju::GetNext(Role role, int deep)
             return std::make_pair(size_ / 2 + random[0], size_ / 2 + random[1]);
         }
     }
-    auto res = GetNextImplMT(role, deep);
+    int max = INT_MIN;
+    auto res = GetNextImpl(role, deep);
     return std::make_pair(std::get<0>(res), std::get<1>(res));
 }
 
 //x y value
 
-std::tuple<int, int, int> Renju::GetNextImplMT(Role role, int deep)
+std::tuple<int, int, int> Renju::GetNextImpl(Role role, int deep)
 {
     int max = INT_MIN;
     int resx = 0;
     int resy = 0;
-#pragma omp parallel for
     for (int x = 0; x < size_; ++x)
     {
         for (int y = 0; y < size_; ++y)
         {
-            if (Get(x, y) == Pos::kEmpty && HasNear(x, y, &data_))
+            if (Get(x, y) == Pos::kEmpty && HasNear(x, y))
             {
                 SetPos(x, y, GetByRole(role));
                 bool win;
                 ComputePosValue(x, y, &win);
-                if (deep > 0 && !win)
-                {
-                    auto res = GetNextImpl(GetOpponent(role), deep - 1);
-                    int v = -std::get<2>(res);
-                    if (v > max)
-                    {
-                        max = v;
-                        resx = x;
-                        resy = y;
-                    }
-#if USE_RANDOM
-                    if (v == max && rand() > RAND_MAX / 2)
-                    {
-
-                        max = v;
-                        resx = x;
-                        resy = y;
-                    }
-#endif
-                }
-                else
-                {
-                    int v = ComputeValue(role) - ComputeValue(GetOpponent(role));
-                    if (v > max)
-                    {
-                        max = v;
-                        resx = x;
-                        resy = y;
-                    }
-#if USE_RANDOM
-                    if (v == max && rand() > RAND_MAX / 2)
-                    {
-
-                        max = v;
-                        resx = x;
-                        resy = y;
-                    }
-#endif
-                }
-                SetPos(x, y, Pos::kEmpty);
-            }
-        }
-    }
-    return std::make_tuple(resx, resy, max);
-}
-
-std::tuple<int, int, int> Renju::GetNextImpl(Role role, int deep, std::vector<Pos> *data)
-{
-    auto &d = data ? *data : data_;
-    int max = INT_MIN;
-    int resx = 0;
-    int resy = 0;
-    for (int x = 0; x < size_; ++x)
-    {
-        for (int y = 0; y < size_; ++y)
-        {
-            if (Get(x, y, &d) == Pos::kEmpty && HasNear(x, y))
-            {
-                SetPos(x, y, GetByRole(role));
-                bool win;
-                ComputePosValue(x, y, &win, &d);
                 if (deep > 0 && !win)
                 {
                     auto res = GetNextImpl(GetOpponent(role), deep - 1);
@@ -343,9 +283,8 @@ int Renju::ComputePosValue(int x, int y, bool*win)
     return value;
 }
 
-Renju::Pos &Renju::Get(int x, int y, std::vector<Pos> *data)
+Renju::Pos &Renju::Get(int x, int y)
 {
-    if (data)return (*data)[x * size_ + y];
     return data_[x * size_ + y];
 }
 
