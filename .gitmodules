@@ -1,0 +1,4 @@
+[submodule "rapidjson"]
+	path = rapidjson
+	url = https://github.com/wangpeiwen/rapidjson.git
+	branch = getter
