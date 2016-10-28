@@ -63,7 +63,7 @@ public:
     void Init();
 
     //计算下一步
-    std::pair<int, int> GetNext(Role role, int deep = 4);
+    std::pair<int, int> GetNext(Role role, int deep = 0);
 
 private:
     std::tuple<int, int, int> GetNextImpl(Role role, int deep, int alpha = INT_MIN + 1, int beta = INT_MAX);

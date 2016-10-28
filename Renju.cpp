@@ -116,6 +116,26 @@ std::tuple<int, int, int> Renju::GetNextImpl(Role role, int deep, int alpha, int
         }
         SetPos(x, y, Pos::kEmpty);
         if (v > max) {
+#if ! defined(NDEBUG) && 0
+			fprintf(stderr, "update max, deep:%d role:%d orign max:%d new max:%d\n", deep, role, max, v);
+			for (int i = 0; i < size_; ++i) {
+				for (int j = 0; j < size_; ++j)
+					switch (Get(i, j))
+					{
+					case Pos::kBlack:
+						fprintf(stderr, "b ");
+						break;
+					case Pos::kWhite:
+						fprintf(stderr, "w ");
+						break;
+					default:
+						fprintf(stderr, "o ");
+						break;
+					}
+				fprintf(stderr, "\n");
+			}
+			fprintf(stderr, "\n");
+#endif
             max = v;
             if (max >= beta)
                 return std::make_tuple(x, y, max); //这里比beta大 可以忽略结果直接返回
@@ -129,7 +149,7 @@ std::tuple<int, int, int> Renju::GetNextImpl(Role role, int deep, int alpha, int
         }
     }
     if (res.empty())throw "has no position";
-    int i = rand() % res.size();
+    int i = 0;//rand() % res.size();
     return std::make_tuple(res[i].first, res[i].second, max);
 }
 
@@ -206,7 +226,7 @@ std::vector<std::pair<int, int> > Renju::GenMoveList() {
                 res2.emplace_back(x, y);
             }
         }
-    //    res1.insert(res1.end(), std::make_move_iterator(res2.begin()), std::make_move_iterator(res2.end()));
+    res1.insert(res1.end(), std::make_move_iterator(res2.begin()), std::make_move_iterator(res2.end()));
     return res1;
 }
 
@@ -268,7 +288,7 @@ int   Renju::Score(Role role) {
             if (IsSame(role, pos))     //只对棋盘上已有的子进行算分
             {
                 int res[Type::kMax] = {0};
-                SumupTypeinfos(Role::kBlack, x, y, res);
+                SumupTypeinfos(role, x, y, res);
                 value_me += TypeValue::kValue5 * res[Type::k5]
                                + TypeValue::kValueFlex4 * res[Type::kFlex4]
                                + TypeValue::kValueBlock4 * res[Type::kBlock4]
@@ -280,7 +300,7 @@ int   Renju::Score(Role role) {
             }
             else {
                 int res[Type::kMax] = {0};
-                SumupTypeinfos(Role::kBlack, x, y, res);
+                SumupTypeinfos(role, x, y, res);
                 value_op += TypeValue::kValue5 * res[Type::k5]
                                + TypeValue::kValueFlex4 * res[Type::kFlex4]
                                + TypeValue::kValueBlock4 * res[Type::kBlock4]

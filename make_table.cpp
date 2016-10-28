@@ -124,7 +124,7 @@ Renju::Type GetKeyType(uint32_t key) {
 }
 
 void func(uint32_t key, int deep) {
-    for (int i = 0; i < (1 << 18); ++i)
+    for (int i = 0; i < sizeof(type_list)/sizeof(type_list[0]); ++i)
         type_list[i] = GetKeyType(i);
 }
 
@@ -149,15 +149,16 @@ const char *GetDesc(uint32_t key) {
 }
 
 int main(int argc, char **argv) {
+	GetKeyType(609621);
+	for (int i = 0; i < sizeof(type_list) / sizeof(type_list[0]); ++i) {
+		type_list[i] = Renju::Type::kDefault;
+	}
+	func(0, 8);
     FILE *file = fopen("table.cpp", "w");
     if (file == NULL) {
         fprintf(stderr, "open file error\n");
         return -1;
     }
-    for (int i = 0; i < sizeof(type_list) / sizeof(type_list[0]); ++i) {
-        type_list[i] = Renju::Type::kDefault;
-    }
-    func(0, 8);
     fprintf(file, "int g_patternTable[] = {\n");
     for (int i = 0; i < sizeof(type_list) / sizeof(type_list[0]); ++i) {
         fprintf(file, "%d, //%d %s\n", type_list[i], i, GetDesc(i));
