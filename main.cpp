@@ -1,5 +1,5 @@
 #define RAPIDJSON_HAS_STDSTRING 1
-#define RAPIDJSON_PARSE_DEFAULT_FLAGS (kParseTrailingCommasFlag|kParseStopWhenDoneFlag)
+#define RAPIDJSON_PARSE_DEFAULT_FLAGS (kParseTrailingCommasFlag|kParseStopWhenDoneFlag|kParseCommentsFlag)
 #include <rapidjson/filereadstream.h>
 #include <rapidjson/filewritestream.h>
 #include <rapidjson/writer.h>
@@ -97,17 +97,17 @@ int main(int argc, char** argv)
     printf("Content-Type: text/json\r\n\r\n");
     char buffer[65535];
     rapidjson::Document json;
-#if 0
-    rapidjson::FileReadStream input(stdin, buffer, sizeof (buffer));
-    json.ParseStream(input);
-#else
-    json.Parse(R"(
+    if (getenv("QUERY_STRING"))
+    {
+        rapidjson::FileReadStream input(stdin, buffer, sizeof (buffer));
+        json.ParseStream(input);
+    }
+    else
+        json.Parse(R"(
 
-{"head":{"type":1},"body":{"steps":[{"side":"b","x":"8","y":"8","time":"20161027163928"},{"side":"w","x":"9","y":"7","time":"20161027163929"},{"side":"b","x":"7","y":"7","time":"20161027163929"},{"side":"w","x":"9","y":"9","time":"20161027163929"},{"side":"b","x":"9","y":"8","time":"20161027163929"},{"side":"w","x":"10","y":"8","time":"20161027163929"},{"side":"b","x":"8","y":"6","time":"20161027163930"},{"side":"w","x":"8","y":"10","time":"20161027163930"},{"side":"b","x":"8","y":"7","time":"20161027163930"},{"side":"w","x":"7","y":"11","time":"20161027163931"},{"side":"b","x":"7","y":"8","time":"20161027163931"},{"side":"w","x":"5","y":"13","time":"20161027163931"}],"size":15,"has_hand_cut":1}}"
-
+{"head":{"type":1},"body":{"steps":[{"side":"b","x":7,"y":5},{"side":"w","x":7,"y":6},{"side":"b","x":8,"y":6},{"side":"w","x":6,"y":6}],"size":15,"has_hand_cut":1}}
 
 )");
-#endif
     if (json.HasParseError())
     {
         pointer_result.Set(json, 1);
