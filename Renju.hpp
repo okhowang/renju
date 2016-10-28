@@ -3,9 +3,11 @@
 
 #include <cstddef>
 #include <climits>
+
 #include <utility>
 #include <memory>
 #include <vector>
+#include <chrono>
 
 class Renju {
 public:
@@ -57,16 +59,18 @@ public:
     virtual ~Renju();
 
     //初始化棋盘
-    void SetPos(int x, int y, Pos role);
+    void SetPos(int x, int y, Pos role, bool update = true);
 
     //setpos完毕后调用
     void Init();
 
     //计算下一步
-    std::pair<int, int> GetNext(Role role, int deep = 0);
+    std::pair<int, int> GetNext(Role role, int deep = 2);
 
 private:
-    std::tuple<int, int, int> GetNextImpl(Role role, int deep, int alpha = INT_MIN + 1, int beta = INT_MAX);
+    std::tuple<int, int, int> GetNextImpl(Role role, int deep, int check_deep, int alpha = INT_MIN + 1,
+                                          int beta = INT_MAX,
+                                          std::pair<int, int> *suggest = nullptr);
 
     std::vector<Pos> data_;
     bool has_forbid_;
@@ -81,11 +85,11 @@ private:
     Pos GetByRole(Role role);
 
     static inline bool IsSame(Role role, Pos pos) {
-		return (pos == Pos::kBlack && role == Role::kBlack) ||
-			(pos == Pos::kWhite && role == Role::kWhite);
-	}
+        return (pos == Pos::kBlack && role == Role::kBlack) ||
+               (pos == Pos::kWhite && role == Role::kWhite);
+    }
 
-    std::vector<std::pair<int, int> > GenMoveList();
+    std::vector<std::tuple<int, int, int> > GenMoveList(Pos pos);
 
     bool HasNear(int x, int y, const int distance = 2);
 
@@ -136,6 +140,14 @@ private:
     //判斷一個子是否勝利 或 禁手 剪枝用
     int GetPosResult(int x, int y);
 
+    std::string Debug();
+
+    std::chrono::time_point<std::chrono::system_clock> start_;
+
+    bool Timeout() {
+//        return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().- start_).count() > 9000;
+        return true;
+    }
 };
 
 #endif /* RENJU_HPP */

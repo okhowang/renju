@@ -5,7 +5,7 @@
 
 #include <rapidjson/filereadstream.h>
 #include <rapidjson/filewritestream.h>
-#include <rapidjson/writer.h>
+#include <rapidjson/prettywriter.h>
 #include <rapidjson/getter.h>
 
 #include "Renju.hpp"
@@ -64,13 +64,13 @@ void Process(rapidjson::Document &json)
         }
         if (v_side->GetString()[0] == 'w')
         {
-            renju.SetPos(x, y, Renju::Pos::kWhite);
+            renju.SetPos(x, y, Renju::Pos::kWhite, false);
             cur_role = Renju::Role::kWhite;
         }
         else
         {
 
-            renju.SetPos(x, y, Renju::Pos::kBlack);
+            renju.SetPos(x, y, Renju::Pos::kBlack, false);
             cur_role = Renju::Role::kBlack;
         }
     }
@@ -79,7 +79,7 @@ void Process(rapidjson::Document &json)
         cur_role = Renju::Role::kBlack;
     else cur_role = Renju::Role::kWhite;
 
-    auto pos = renju.GetNext(cur_role);
+    auto pos = renju.GetNext(cur_role, 2);
     rapidjson::Value step;
     step.SetObject();
 	if (cur_role == Renju::Role::kBlack) 
@@ -109,10 +109,7 @@ int main(int argc, char** argv)
     }
     else
         json.Parse(R"(
-
-{"head":{"type":1},"body":{"steps":[
-{"side":"b","x":"8","y":"8","time":"20161028171330"},{"side":"w","x":"9","y":"8","time":"20161028171330"}],"size":15,"has_hand_cut":1}}
-
+{"head":{"type":1},"body":{"steps":[{"side":"b","x":8,"y":5},{"side":"w","x":9,"y":5},{"side":"b","x":9,"y":6},{"side":"w","x":8,"y":6},{"side":"b","x":11,"y":8}],"size":15,"has_hand_cut":1}}
 )");
     if (json.HasParseError())
     {
@@ -144,7 +141,7 @@ int main(int argc, char** argv)
         pointer_msg.Set(json, e);
     }
     rapidjson::FileWriteStream output(stdout, buffer, sizeof (buffer));
-    rapidjson::Writer<rapidjson::FileWriteStream> writer(output);
+    rapidjson::PrettyWriter<rapidjson::FileWriteStream> writer(output);
     json.Accept(writer);
     return 0;
 }
