@@ -1,5 +1,8 @@
 #define RAPIDJSON_HAS_STDSTRING 1
 #define RAPIDJSON_PARSE_DEFAULT_FLAGS (kParseTrailingCommasFlag|kParseStopWhenDoneFlag|kParseCommentsFlag)
+
+#include <ctime>
+
 #include <rapidjson/filereadstream.h>
 #include <rapidjson/filewritestream.h>
 #include <rapidjson/writer.h>
@@ -79,15 +82,17 @@ void Process(rapidjson::Document &json)
     auto pos = renju.GetNext(cur_role);
     rapidjson::Value step;
     step.SetObject();
-    step.AddMember("side", cur_role == Renju::Role::kBlack ? "b" : "w", json.GetAllocator());
+	if (cur_role == Renju::Role::kBlack) 
+		step.AddMember("side", "b", json.GetAllocator());
+	else step.AddMember("side", "w", json.GetAllocator());
+    
     step.AddMember("x", std::to_string(pos.first + 1), json.GetAllocator());
     step.AddMember("y", std::to_string(pos.second + 1), json.GetAllocator());
     time_t t;
     time(&t);
-    tm tm;
-    localtime_r(&t, &tm);
+    tm *tm = localtime(&t);
     char timebuf[128];
-    strftime(timebuf, sizeof (timebuf), "%Y%m%d%H%M%S", &tm);
+    strftime(timebuf, sizeof (timebuf), "%Y%m%d%H%M%S", tm);
     step.AddMember("time", rapidjson::Value(timebuf, json.GetAllocator()).Move(), json.GetAllocator());
     steps->PushBack(step.Move(), json.GetAllocator());
 }
@@ -105,7 +110,7 @@ int main(int argc, char** argv)
     else
         json.Parse(R"(
 
-{"head":{"type":1},"body":{"steps":[{"side":"b","x":7,"y":5},{"side":"w","x":7,"y":6},{"side":"b","x":8,"y":6},{"side":"w","x":6,"y":6}],"size":15,"has_hand_cut":1}}
+{"head":{"type":1},"body":{"steps":[{"side":"b","x":"8","y":"8","time":"20161028161911"},{"side":"w","x":"9","y":"9","time":"20161028161911"},{"side":"b","x":"7","y":"8","time":"20161028161911"},{"side":"w","x":"8","y":"7","time":"20161028161911"},{"side":"b","x":"10","y":"8","time":"20161028161911"},{"side":"w","x":"9","y":"8","time":"20161028161911"},{"side":"b","x":"8","y":"10","time":"20161028161911"},{"side":"w","x":"6","y":"7","time":"20161028161911"},{"side":"b","x":"5","y":"8","time":"20161028161911"},{"side":"w","x":"4","y":"8","time":"20161028161911"},{"side":"b","x":"6","y":"6","time":"20161028161911"},{"side":"w","x":"7","y":"5","time":"20161028161911"},{"side":"b","x":"9","y":"6","time":"20161028161911"},{"side":"w","x":"5","y":"9","time":"20161028161911"},{"side":"b","x":"3","y":"8","time":"20161028161911"},{"side":"w","x":"7","y":"10","time":"20161028161911"},{"side":"b","x":"5","y":"6","time":"20161028161912"},{"side":"w","x":"4","y":"7","time":"20161028161912"},{"side":"b","x":"8","y":"6","time":"20161028161913"},{"side":"w","x":"3","y":"9","time":"20161028161914"}],"size":15,"has_hand_cut":1}}"
 
 )");
     if (json.HasParseError())

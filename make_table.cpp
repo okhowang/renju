@@ -105,9 +105,9 @@ Renju::Type Check2(uint32_t key) {
         }
     }
     if (count_flex3)
-        return Renju::Type::kFlex3;
+        return Renju::Type::kFlex2;
     if (count_block3)
-        return Renju::Type::kBlock3;
+        return Renju::Type::kBlock2;
     return Renju::Type::kDefault;
 }
 
@@ -149,8 +149,6 @@ const char *GetDesc(uint32_t key) {
 }
 
 int main(int argc, char **argv) {
-    Check4(21888);
-    GetKeyType(5504);
     FILE *file = fopen("table.cpp", "w");
     if (file == NULL) {
         fprintf(stderr, "open file error\n");
@@ -160,7 +158,7 @@ int main(int argc, char **argv) {
         type_list[i] = Renju::Type::kDefault;
     }
     func(0, 8);
-    fprintf(file, "Renju::Type patternTable[] = {\n");
+    fprintf(file, "int g_patternTable[] = {\n");
     for (int i = 0; i < sizeof(type_list) / sizeof(type_list[0]); ++i) {
         fprintf(file, "%d, //%d %s\n", type_list[i], i, GetDesc(i));
     }

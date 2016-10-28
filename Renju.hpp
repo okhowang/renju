@@ -80,7 +80,10 @@ private:
 
     Pos GetByRole(Role role);
 
-    static bool IsSame(Role role, Pos pos);
+    static inline bool IsSame(Role role, Pos pos) {
+		return (pos == Pos::kBlack && role == Role::kBlack) ||
+			(pos == Pos::kWhite && role == Role::kWhite);
+	}
 
     std::vector<std::pair<int, int> > GenMoveList();
 
@@ -100,11 +103,11 @@ private:
 
     static Renju::Type TypeLine(Role role, Pos line[]);
 
-    Renju::Type TypeLine(Role role, int x, int y, int i, int j); //获取点(x,y)某一方向上的棋型信息
+    Renju::Type TypeLine(Role role, int x, int y, int d); //获取点(x,y)某一方向上的棋型信息
     void UpdatePosTypes(int x, int y); //更新点(x,y)附近的棋型信息
     void SumupTypeinfos(Role role, int x, int y, int res[Type::kMax]);
 
-    int Score();
+    int Score(Role role);
 
     static const int direct_list[4][2];
     static const int sign_list[2];
@@ -112,7 +115,7 @@ private:
 
     static std::pair<bool, Type> patternCache[1024 * 1024];
 
-    uint32_t GetKey(int x, int y, int direct);
+    uint32_t GetKey(Role role, int x, int y, int direct);
 
     static Type GetKeyType(uint32_t key);
 

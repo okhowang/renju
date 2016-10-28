@@ -1,6 +1,10 @@
 #include "Renju.hpp"
 
+#include <ctime>
 #include <cassert>
+
+#include <tuple>
+
 
 const int Renju::direct_list[4][2] = {
         {1, 0},
@@ -14,6 +18,7 @@ std::pair<bool, Renju::Type> Renju::patternCache[1024 * 1024];
 Renju::Renju(int size, bool forbid) : has_forbid_(forbid), size_(size),
                                       black_count_(0), white_count_(0) {
     data_.assign(size * size, Pos::kEmpty);
+	pos_types.assign(size * size, { Type::kDefault,Type::kDefault,Type::kDefault,Type::kDefault,Type::kDefault,Type::kDefault,Type::kDefault,Type::kDefault });
 }
 
 Renju::~Renju() {
@@ -107,7 +112,7 @@ std::tuple<int, int, int> Renju::GetNextImpl(Role role, int deep, int alpha, int
             v = -std::get<2>(res);
         }
         else {
-            v = Score();
+            v = Score(role);
         }
         SetPos(x, y, Pos::kEmpty);
         if (v > max) {
@@ -133,9 +138,8 @@ bool Renju::IsValidPoint(int x, int y) {
 }
 //取最大值的点的值
 
-uint32_t Renju::GetKey(int x, int y, int direct) {
+uint32_t Renju::GetKey(Role role, int x, int y, int direct) {
     uint32_t key = kSelf << 8;
-    auto raw = Get(x, y);
     auto &d = direct_list[direct];
     for (auto sign : sign_list) {
         int i = x;
@@ -146,7 +150,7 @@ uint32_t Renju::GetKey(int x, int y, int direct) {
             j += sign * d[1];
             if (IsValidPoint(i, j)) {
                 auto p = Get(i, j);
-                if (raw == p) {
+                if (IsSame(role, p)) {
                     key |= sign > 0 ? (kSelf << 8 << k * 2) : (kSelf << 8 >> k * 2);
                 }
                 else if (p == Pos::kEmpty) {
@@ -165,39 +169,14 @@ uint32_t Renju::GetKey(int x, int y, int direct) {
     return key;
 }
 
-Renju::Type Renju::GetKeyType(uint32_t key) {
-    if (patternCache[key].first)
-        return patternCache[key].second;
-            \
+extern int g_patternTable[];
 
-    assert(key & (kSelf << 8));
-    Pos line[9];
-    for (int i = 0; i < 9; ++i) {
-        switch (key & 0x3) {
-            case Key::kEmpty:
-                line[i] = Pos::kEmpty;
-                break;
-            case Key::kSelf:
-                line[i] = Pos::kBlack;
-                break;
-            default:
-                line[i] = Pos::kWhite;
-                break;
-        }
-        key >>= 2;
-    }
-    Type type = TypeLine(Role::kBlack, line);
-    patternCache[key].first = true;
-    return patternCache[key].second = type;
+Renju::Type Renju::GetKeyType(uint32_t key) {
+    return static_cast<Type>(g_patternTable[key]);
 }
 
 Renju::Pos &Renju::Get(int x, int y) {
     return data_[x * size_ + y];
-}
-
-bool Renju::IsSame(Role role, Pos pos) {
-    return (pos == Pos::kBlack && role == Role::kBlack) ||
-           (pos == Pos::kWhite && role == Role::kWhite);
 }
 
 Renju::Pos Renju::GetByRole(Role role) {
@@ -235,147 +214,6 @@ Renju::Role Renju::GetOpponent(Role role) {
     return role == Role::kBlack ? Role::kWhite : Role::kBlack;
 }
 
-Renju::Type Renju::TypeLine(Role role, Pos line[]) {
-    int k;
-    int empty = 0; //空格数
-    int block = 0;
-    int max_len = 1; //己方棋子的最大长度, 如XX_X_中的X最大长度位5
-    int border_len = 1; //己方棋子的边界长度，如XX_X_中的X边界长度为4
-    int count = 1; //连续的己方棋子数
-
-    //正方向
-    for (k = 5; k < 9; k++) {
-        Pos curPos = line[k];
-        bool stop_flag = false;
-
-        switch (curPos) {
-            case Pos::kOutside: //到边界了
-                if (border_len == empty + count) //上一个点是己方棋子
-                    block++;
-                stop_flag = true;
-                break;
-            case Pos::kEmpty: //遇到空格
-                max_len++;
-                empty++;
-                break;
-            default:
-                if (IsSame(role, curPos)) { //是己方棋子
-                    if (empty > 2 || empty + count > 4)
-                        stop_flag = true;
-                    else {
-                        count++;
-                        max_len++;
-                        border_len = empty + count;
-                    }
-                }
-                else { //遇到对方棋子
-                    if (border_len == empty + count) //上一个点是己方棋子
-                        block++;
-                    stop_flag = true;
-                }
-                break;
-        }
-        if (stop_flag) break;
-    }
-
-    // 计算中间空格
-    empty = border_len - count;
-
-    //反方向
-    for (k = 3; k >= 0; --k) {
-        Pos curPos = line[k];
-        bool stop_flag = false;
-
-        switch (curPos) {
-            case Pos::kOutside: //到边界了
-                if (border_len == empty + count) //上一个点是己方棋子
-                    block++;
-                stop_flag = true;
-                break;
-            case Pos::kEmpty: //遇到空格
-                max_len++;
-                empty++;
-                break;
-            default:
-                if (IsSame(role, curPos)) { //是己方棋子
-                    if (empty > 2 || empty + count > 4)
-                        stop_flag = true;
-                    else {
-                        count++;
-                        max_len++;
-                        border_len = empty + count;
-                    }
-                }
-                else { //遇到对方棋子
-                    if (border_len == empty + count) //上一个点是己方棋子
-                        block++;
-                    stop_flag = true;
-                }
-                break;
-        }
-        if (stop_flag) break;
-    }
-
-    if (max_len >= 5 && count > 1) {
-        if (count == 5)
-            return k5;
-        if (max_len > 5 && border_len < 5 && block == 0) {
-            switch (count) {
-                case 2:
-                    return kFlex2;
-                case 3:
-                    return kFlex3;
-                case 4:
-                    return kFlex4;
-            }
-        }
-        else {
-            switch (count) {
-                case 2:
-                    return kBlock2;
-                case 3:
-                    return kBlock3;
-                case 4:
-                    return kBlock4;
-            }
-        }
-    }
-
-    return Type::kDefault;
-}
-
-Renju::Type Renju::TypeLine(Role role, int x, int y, int i, int j) {
-    int a, b, k;
-
-    Pos line[9];
-    if (role == Role::kBlack) line[4] = Pos::kBlack;
-    else line[4] = Pos::kWhite;
-
-    //正方向
-    a = x;
-    b = y;
-    for (k = 0; k < 4; k++) {
-        a += i;
-        b += j;
-
-        Pos curPos = Get(a, b);
-        line[k + 5] = curPos;
-    }
-
-    //反方向
-    a = x;
-    b = y;
-    for (k = 0; k < 4; k++) {
-        a -= i;
-        b -= j;
-
-        Pos curPos = Get(a, b);
-        line[3 - k] = curPos;
-    }
-
-    return TypeLine(role, line);
-}
-
 void  Renju::UpdatePosTypes(int x, int y) {
     int a, b;
     for (int i = 0; i < 4; ++i) {
@@ -385,15 +223,15 @@ void  Renju::UpdatePosTypes(int x, int y) {
         b = y + dy;
 
         for (int k = 0; k < 4 && IsValidPoint(a, b); a += dx, b += dy, ++k) {
-            GetPosType(a, b).typeinfo[0][i] = TypeLine(Role::kBlack, a, b, dx, dy);
-            GetPosType(a, b).typeinfo[1][i] = TypeLine(Role::kWhite, a, b, dx, dy);
+            GetPosType(a, b).typeinfo[0][i] = GetKeyType(GetKey(Role::kBlack, a, b, i));
+            GetPosType(a, b).typeinfo[1][i] = GetKeyType(GetKey(Role::kWhite, a, b, i));
         }
 
         a = x - dx;
         b = y - dy;
         for (int k = 0; k < 4 && IsValidPoint(a, b); a -= dx, b -= dy, ++k) {
-            GetPosType(a, b).typeinfo[0][i] = TypeLine(Role::kBlack, a, b, dx, dy);
-            GetPosType(a, b).typeinfo[1][i] = TypeLine(Role::kWhite, a, b, dx, dy);
+            GetPosType(a, b).typeinfo[0][i] = GetKeyType(GetKey(Role::kBlack, a, b, i));
+            GetPosType(a, b).typeinfo[1][i] = GetKeyType(GetKey(Role::kWhite, a, b, i));
         }
     }
 }
@@ -419,19 +257,19 @@ void  Renju::SumupTypeinfos(Role role, int x, int y, int res[Type::kMax]) {
     ++res[type[3]];
 }
 
-int   Renju::Score() {
-    int value_black;
-    int value_white;
-    for (int x = frame.frame_x_min; x <= frame.frame_x_max; ++x)
-        for (int y = frame.frame_y_min; y < frame.frame_y_max; ++y) {
+int   Renju::Score(Role role) {
+    int value_me = 0;
+    int value_op = 0;
+	for (int x = 0; x < size_; ++x)
+		for (int y = 0; y < size_; ++y) {
             auto pos = Get(x, y);
             if (pos == Pos::kEmpty) continue;
 
-            if (IsSame(Role::kBlack, pos))     //只对棋盘上已有的子进行算分
+            if (IsSame(role, pos))     //只对棋盘上已有的子进行算分
             {
                 int res[Type::kMax] = {0};
                 SumupTypeinfos(Role::kBlack, x, y, res);
-                value_black += TypeValue::kValue5 * res[Type::k5]
+                value_me += TypeValue::kValue5 * res[Type::k5]
                                + TypeValue::kValueFlex4 * res[Type::kFlex4]
                                + TypeValue::kValueBlock4 * res[Type::kBlock4]
                                + TypeValue::kValueFlex3 * res[Type::kFlex3]
@@ -443,7 +281,7 @@ int   Renju::Score() {
             else {
                 int res[Type::kMax] = {0};
                 SumupTypeinfos(Role::kBlack, x, y, res);
-                value_white += TypeValue::kValue5 * res[Type::k5]
+                value_op += TypeValue::kValue5 * res[Type::k5]
                                + TypeValue::kValueFlex4 * res[Type::kFlex4]
                                + TypeValue::kValueBlock4 * res[Type::kBlock4]
                                + TypeValue::kValueFlex3 * res[Type::kFlex3]
@@ -453,7 +291,7 @@ int   Renju::Score() {
                                + TypeValue::kValueDefault * res[Type::kDefault];
             }
         }
-    return value_black - value_white;
+    return value_me - value_op;
 }
 
 void Renju::UpdateFrame(int x, int y) {
