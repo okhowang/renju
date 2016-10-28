@@ -95,6 +95,7 @@ void Process(rapidjson::Document &json)
     strftime(timebuf, sizeof (timebuf), "%Y%m%d%H%M%S", tm);
     step.AddMember("time", rapidjson::Value(timebuf, json.GetAllocator()).Move(), json.GetAllocator());
     steps->PushBack(step.Move(), json.GetAllocator());
+    pointer_steps.Set(json, *steps, json.GetAllocator());
 }
 
 int main(int argc, char** argv)
@@ -109,7 +110,7 @@ int main(int argc, char** argv)
     }
     else
         json.Parse(R"(
-{"head":{"type":1},"body":{"steps":[{"side":"b","x":8,"y":5},{"side":"w","x":9,"y":5},{"side":"b","x":9,"y":6},{"side":"w","x":8,"y":6},{"side":"b","x":11,"y":8}],"size":15,"has_hand_cut":1}}
+{"head":{"type":1,"result":0,"err_msg":"sucess"},"body":{"player_white":{"type":"Human","name":"123","url":"123","side":"w","team":"Human"},"player_black":{"type":"\u54d4\u4e86\u72d7","name":"okhowang_black","url":"http:\/\/133.130.100.186:81\/cgi-bin\/renju","side":"b","team":"\u54d4\u4e86\u72d7"},"start_time":"20161028_225545","size":15,"steps":null,"id":"d0535a68aff1cf36f67bcfcfb691c470","has_hand_cut":1,"invalid":null,"winner":null,"reason":null,"timeout":10}}
 )");
     if (json.HasParseError())
     {
