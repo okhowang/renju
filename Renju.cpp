@@ -99,14 +99,14 @@ std::tuple<int, int, int> Renju::GetNextImpl(Role role, int deep, int alpha, int
         int x = p.first;
         int y = p.second;
         SetPos(x, y, GetByRole(role));
-        auto &pos_type = GetPosType(x, y).typeinfo[role == Role::kBlack ? 0 : 1];
-        bool win = (pos_type[0] == Type::k5);
+        int result = GetPosResult(x, y);
         int v;
-        if (deep > 0 && !win) {
+        //如果禁手和勝利也不用再往下搜了
+        if (deep > 0 && result == 0) {
             auto res = GetNextImpl(GetOpponent(role), deep - 1, -beta, -alpha);
             v = -std::get<2>(res);
         }
-        else if (!win) {
+        else {
             v = Score();
         }
         SetPos(x, y, Pos::kEmpty);
@@ -132,20 +132,6 @@ bool Renju::IsValidPoint(int x, int y) {
     return x >= 0 && x < size_ && y >= 0 && y < size_;
 }
 //取最大值的点的值
-
-int Renju::ComputeValue(Role role) {
-    int max = INT_MIN;
-    for (int x = 0; x < size_; ++x)
-        for (int y = 0; y < size_; ++y) {
-            auto pos = Get(x, y);
-            if (IsSame(role, pos)) {
-                int value = ComputePosValue(x, y);
-                if (value > max)
-                    max = value;
-            }
-        }
-    return max;
-}
 
 uint32_t Renju::GetKey(int x, int y, int direct) {
     uint32_t key = kSelf << 8;
@@ -203,32 +189,6 @@ Renju::Type Renju::GetKeyType(uint32_t key) {
     Type type = TypeLine(Role::kBlack, line);
     patternCache[key].first = true;
     return patternCache[key].second = type;
-}
-
-int Renju::ComputePosValue(int x, int y, bool *win) {
-    if (win)*win = false;
-    uint8_t res[Type::kMax] = {0};
-    auto raw = Get(x, y);
-    for (int d = 0; d < 4; ++d) {
-        int key = GetKey(x, y, d);
-        Type type = GetKeyType(key);
-        res[type]++;
-    }
-    if (raw == Pos::kBlack && has_forbid_) {
-        if ((res[Type::k5] == 0 && (res[Type::kFlex4] > 1 || res[Type::kFlex3] > 1))
-            || res[Type::kLong])
-            return TypeValue::kValueForbid; //禁手
-    }
-    if (res[Type::k5] || res[Type::kLong] || res[Type::kFlex4] || res[Type::kBlock4] + res[Type::kFlex3] > 1) {
-        if (win)*win = true;
-        return TypeValue::kValue5; //赢了
-    }
-    return TypeValue::kValueBlock4 * res[Type::kBlock4]
-           + TypeValue::kValueFlex3 * res[Type::kFlex3]
-           + TypeValue::kValueBlock3 * res[Type::kBlock3]
-           + TypeValue::kValueFlex2 * res[Type::kFlex2]
-           + TypeValue::kValueBlock2 * res[Type::kBlock2]
-           + TypeValue::kValueDefault * res[Type::kDefault];
 }
 
 Renju::Pos &Renju::Get(int x, int y) {
@@ -503,3 +463,18 @@ void Renju::UpdateFrame(int x, int y) {
     if (y > frame.frame_y_max) frame.frame_y_max = y;
 }
 
+int Renju::GetPosResult(int x, int y) {
+    const auto &pos = Get(x, y);
+    const auto &type = GetPosType(x, y).typeinfo[pos == Pos::kBlack ? 0 : 1];
+    int res[Type::kMax] = {0};
+    for (int i = 0; i < 4; ++i) {
+        res[type[i]]++;
+    }
+    assert(pos != Pos::kEmpty);
+    if (has_forbid_ && pos == Pos::kBlack) {
+        if (res[Type::kLong] || (res[Type::k5] == 0 && (res[Type::kFlex4] > 1 || res[Type::kFlex3] > 1)))
+            return -1;
+    }
+    if (res[Type::kLong] || res[Type::k5] || res[Type::kFlex4] || (res[Type::kBlock4] + res[Type::kFlex3] > 1))return 1;
+    return 0;
+}

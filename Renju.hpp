@@ -46,6 +46,11 @@ public:
         kWhite = 2,
         kOutside = 3,
     };
+    enum Key {
+        kEmpty = 0,
+        kSelf = 1,
+        kOppnonent = 2
+    };
 
     Renju(int size, bool forbid);
 
@@ -70,10 +75,6 @@ private:
     int white_count_;
 
     bool IsValidPoint(int x, int y);
-
-    int ComputeValue(Role role);
-
-    int ComputePosValue(int x, int y, bool *win = nullptr);
 
     Pos &Get(int x, int y);
 
@@ -109,11 +110,6 @@ private:
     static const int sign_list[2];
     //pattern 缓存判断
 
-    enum Key {
-        kEmpty = 0,
-        kSelf = 1,
-        kOppnonent = 2,
-    };
     static std::pair<bool, Type> patternCache[1024 * 1024];
 
     uint32_t GetKey(int x, int y, int direct);
@@ -132,6 +128,10 @@ private:
     Frame bak_frame;
 
     void UpdateFrame(int x, int y);
+
+
+    //判斷一個子是否勝利 或 禁手 剪枝用
+    int GetPosResult(int x, int y);
 
 };
 

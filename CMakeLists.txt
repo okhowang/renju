@@ -14,4 +14,4 @@ install(TARGETS renju
         CONFIGURATIONS Release
         DESTINATION C:/xampp/cgi-bin)
 
-#add_executable(make_table make_table.cpp)
+add_executable(make_table make_table.cpp)
