@@ -227,7 +227,7 @@ std::vector<std::tuple<int, int, int> > Renju::GenMoveList(Pos pos) {
             if (HasNear(x, y, 1)) {
                 res1.emplace_back(x, y, 0);
             }
-            if (HasNear(x, y, 2)) {
+            else if (HasNear(x, y, 2)) {
                 res2.emplace_back(x, y, 0);
             }
         }
@@ -238,7 +238,7 @@ std::vector<std::tuple<int, int, int> > Renju::GenMoveList(Pos pos) {
         SetPos(std::get<0>(p), std::get<1>(p), Pos::kEmpty);
     }
     std::sort(res1.begin(), res1.end(), [this](const std::tuple<int, int, int> &a, const std::tuple<int, int, int> &b) -> bool {
-        return std::get<2>(a) < std::get<2>(b);
+        return std::get<2>(a) > std::get<2>(b);
     });
     return res1;
 }
