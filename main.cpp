@@ -6,6 +6,7 @@
 #include <rapidjson/filereadstream.h>
 #include <rapidjson/filewritestream.h>
 #include <rapidjson/prettywriter.h>
+#include <rapidjson/writer.h>
 #include <rapidjson/getter.h>
 
 #include "Renju.hpp"
@@ -44,12 +45,12 @@ void Process(rapidjson::Document &json)
 {
     int size = rapidjson::GetIntByPointer(json, pointer_size);
     int forbid = rapidjson::GetIntByPointer(json, pointer_forbin);
-    rapidjson::Value v;
     auto steps = pointer_steps.Get(json);
     if (steps == nullptr || !steps->IsArray())
     {
-        v.SetArray();
-        steps = &v;
+        pointer_steps.Set(json, 1);
+        steps = pointer_steps.Get(json);
+        steps->SetArray();
     }
     Renju renju(size, forbid);
     Renju::Role cur_role = Renju::Role::kWhite;
@@ -95,7 +96,6 @@ void Process(rapidjson::Document &json)
     strftime(timebuf, sizeof (timebuf), "%Y%m%d%H%M%S", tm);
     step.AddMember("time", rapidjson::Value(timebuf, json.GetAllocator()).Move(), json.GetAllocator());
     steps->PushBack(step.Move(), json.GetAllocator());
-    pointer_steps.Set(json, *steps, json.GetAllocator());
 }
 
 int main(int argc, char** argv)
@@ -110,7 +110,8 @@ int main(int argc, char** argv)
     }
     else
         json.Parse(R"(
-{"head":{"type":1,"result":0,"err_msg":"sucess"},"body":{"player_white":{"type":"Human","name":"123","url":"123","side":"w","team":"Human"},"player_black":{"type":"\u54d4\u4e86\u72d7","name":"okhowang_black","url":"http:\/\/133.130.100.186:81\/cgi-bin\/renju","side":"b","team":"\u54d4\u4e86\u72d7"},"start_time":"20161028_225545","size":15,"steps":null,"id":"d0535a68aff1cf36f67bcfcfb691c470","has_hand_cut":1,"invalid":null,"winner":null,"reason":null,"timeout":10}}
+// {"head":{"type":1,"result":0,"err_msg":"sucess"},"body":{"player_white":{"type":"Human","name":"rt","url":"rt","side":"w","team":"Human"},"player_black":{"type":"\u54d4\u4e86\u72d7","name":"okhowang_black","url":"http:\/\/133.130.100.186:81\/cgi-bin\/renju","side":"b","team":"\u54d4\u4e86\u72d7"},"start_time":"20161028_231503","size":15,"steps":[{"side":"b","x":8,"y":8,"time":"20160729071005","seq":0},{"side":"w","x":8,"y":7,"time":"20160729071007","seq":1}],"id":"8cb29cfae3e6e5bcb05a9110c45f2399","has_hand_cut":1,"invalid":null,"winner":null,"reason":null,"timeout":10}}
+{"head":{"type":1,"result":0,"err_msg":"sucess"},"body":{"player_white":{"type":"Human","name":"rt","url":"rt","side":"w","team":"Human"},"player_black":{"type":"\u54d4\u4e86\u72d7","name":"okhowang_black","url":"http:\/\/133.130.100.186:81\/cgi-bin\/renju","side":"b","team":"\u54d4\u4e86\u72d7"},"start_time":"20161028_231503","size":15,"steps":null,"id":"8cb29cfae3e6e5bcb05a9110c45f2399","has_hand_cut":1,"invalid":null,"winner":null,"reason":null,"timeout":10}}
 )");
     if (json.HasParseError())
     {
@@ -142,7 +143,7 @@ int main(int argc, char** argv)
         pointer_msg.Set(json, e);
     }
     rapidjson::FileWriteStream output(stdout, buffer, sizeof (buffer));
-    rapidjson::PrettyWriter<rapidjson::FileWriteStream> writer(output);
+    rapidjson::Writer<rapidjson::FileWriteStream> writer(output);
     json.Accept(writer);
     return 0;
 }
