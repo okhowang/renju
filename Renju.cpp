@@ -467,8 +467,8 @@ int Renju::GetPosResult(uint32_t key[4], uint32_t op_key[4], Role role) {
             if (res[Type::kFlex4] == 1) return 3000;
             if (oppo_res[Type::kFlex4] > 0 || oppo_res[Type::kBlock4] > 1) return 1500;
 
-            if (res[Type::kBlock4] == 1 && res[Type::kFlex3] == 1)  return 1000;
-            if (oppo_res[Type::kBlock4] > 0 && oppo_res[Type::kFlex3] > 0)  return 500;
+            if (res[Type::kBlock4] == 1 && res[Type::kFlex3] == 1)  return 2200;
+            if (oppo_res[Type::kBlock4] > 0 && oppo_res[Type::kFlex3] > 0)  return 1100;
 
             if (res[Type::kLong] || (res[Type::k5] == 0 &&
                 (res[Type::kFlex4] > 1 || res[Type::kBlock4] > 1 || res[Type::kFlex3] > 1)))
@@ -486,9 +486,9 @@ int Renju::GetPosResult(uint32_t key[4], uint32_t op_key[4], Role role) {
                 return 1500;
 
             if (res[Type::kBlock4] > 0 && res[Type::kFlex3] > 0)
-                return 1000;
+                return 2200;
             if (oppo_res[Type::kBlock4] ==1 && oppo_res[Type::kFlex3] == 1)
-                return 500;
+                return 1100;
 
             if (res[Type::kBlock4] || res[Type::kFlex3])
                 return 200;
@@ -506,9 +506,9 @@ int Renju::GetPosResult(uint32_t key[4], uint32_t op_key[4], Role role) {
             return 1500;
 
         if (res[Type::kBlock4] > 0 &&  res[Type::kFlex3] > 0)
-            return 1000;
+            return 2200;
         if (oppo_res[Type::kBlock4] > 0 && oppo_res[Type::kFlex3] > 0)
-            return 1000;
+            return 1100;
 
         if (res[Type::kBlock4] || res[Type::kFlex3])
             return 200;
@@ -608,8 +608,8 @@ int  Renju::AlphaBetaSearch(Role role, int cur_depth, int alpha, int beta) {
     //TODO: 检查对方是否已赢
 
     if (0 == cur_depth) {
-        ++leaf_cnt;
-        return Score(role);
+        //算杀
+        return CheckMateAlphaBetaSearch(role, 2, -beta, -alpha);
     }
 
     auto list = GenMoveList(role);
@@ -631,6 +631,53 @@ int  Renju::AlphaBetaSearch(Role role, int cur_depth, int alpha, int beta) {
         SetPos(x, y, GetByRole(role));
 
         val = -AlphaBetaSearch(GetOpponent(role), cur_depth - 1, -beta, -alpha);
+        LOG("%d level move (%d, %d) score=%d\n", max_iter_depth - cur_depth, x, y, val);
+
+        SetPos(x, y, Pos::kEmpty);
+
+        if (val >= beta) {
+            LOG("cut by val(%d) >= beta(%d)\n", val, beta);
+            return val;
+        }
+
+        if (val > alpha) {
+            alpha = val;
+        }
+    }
+
+    return alpha;
+}
+
+int  Renju::CheckMateAlphaBetaSearch(Role role, int cur_depth, int alpha, int beta) {
+    ++total_cnt;
+
+    //TODO: 检查对方是否已赢
+
+    if (0 == cur_depth) {
+        ++leaf_cnt;
+        return Score(role);
+    }
+
+    auto list = GenMoveList(role);
+    if (!list.empty() && std::get<2>(list[0]) >= 10000)
+    {
+        return 10000;
+    }
+    if (list.size() > max_move_num)   list.erase(list.begin() + max_move_num, list.end());  //限制最多走法
+
+    LOG("%d level moves:\n", max_iter_depth - cur_depth);
+    for (auto &p : list) {
+        LOG("%d-move (%d, %d) val=%d\n", max_iter_depth - cur_depth, std::get<0>(p), std::get<1>(p), std::get<2>(p));
+    }
+
+    int val;
+    for (auto &p : list) {
+        if(std::get<2>(p) < 500)continue;
+        int x = std::get<0>(p);
+        int y = std::get<1>(p);
+        SetPos(x, y, GetByRole(role));
+
+        val = -CheckMateAlphaBetaSearch(GetOpponent(role), cur_depth - 1, -beta, -alpha);
         LOG("%d level move (%d, %d) score=%d\n", max_iter_depth - cur_depth, x, y, val);
 
         SetPos(x, y, Pos::kEmpty);

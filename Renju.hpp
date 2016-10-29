@@ -187,6 +187,7 @@ private:
 
 
     std::vector<uint8_t> has_near_;
+    int CheckMateAlphaBetaSearch(Role role, int cur_depth, int alpha, int beta);
 };
 
 #endif /* RENJU_HPP */
