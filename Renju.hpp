@@ -174,7 +174,7 @@ private:
 
 
     //判斷一個子是否勝利 或 禁手 剪枝用
-    int GetPosResult(uint32_t key[4], Role role);
+    int GetPosResult(uint32_t key[4], uint32_t op_key[4], Role role);
 
     std::string Debug();
 

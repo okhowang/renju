@@ -274,7 +274,13 @@ std::vector<std::tuple<int, int, int> > Renju::GenMoveList(Role role) {
                 GetKey(role, x, y, 2),
                 GetKey(role, x, y, 3),
         };
-        std::get<2>(p) = GetPosResult(key, role);
+        uint32_t op_key[4] = {
+                GetKey(GetOpponent(role), x, y, 0),
+                GetKey(GetOpponent(role), x, y, 1),
+                GetKey(GetOpponent(role), x, y, 2),
+                GetKey(GetOpponent(role), x, y, 3),
+        };
+        std::get<2>(p) = GetPosResult(key, op_key, role);
     }
     std::sort(res.begin(), res.end(),
               [this](const std::tuple<int, int, int> &a, const std::tuple<int, int, int> &b) -> bool {
@@ -348,10 +354,10 @@ bool IsDefaultPosType(Renju::PosType type) {
 
 void Renju::DumpAllPosTypes() {
     LOG("\n\n");
-    PosType default_pos_type = {Type::kDefault, Type::kDefault,
-                                Type::kDefault, Type::kDefault,
-                                Type::kDefault, Type::kDefault,
-                                Type::kDefault, Type::kDefault};
+	PosType default_pos_type = { Type::kDefault, Type::kDefault,
+								Type::kDefault, Type::kDefault,
+								Type::kDefault, Type::kDefault,
+								Type::kDefault, Type::kDefault };
     for (int i = 0; i < size_; ++i)
         for (int j = 0; j < size_; ++j) {
             PosType pos_type = GetPosType(i, j);
@@ -446,53 +452,70 @@ void Renju::UpdateFrame(int x, int y) {
     if (y > frame.frame_y_max) frame.frame_y_max = y;
 }
 
-int Renju::GetPosResult(uint32_t key[4], Role role) {
+int Renju::GetPosResult(uint32_t key[4], uint32_t op_key[4], Role role) {
     int res[Type::kMax] = {0};
+    int oppo_res[Type::kMax] = { 0 };
     SumupTypeinfos(key, res);
-    if (has_forbid_ && role == Role::kBlack) {
-        if (res[Type::k5] > 0) return 10000;  //10000不能随便改
-        if (res[Type::kFlex4] == 1) return 3000;
-        if (res[Type::kLong] || (res[Type::k5] == 0 && (res[Type::kFlex4] > 1 || res[Type::kFlex3] > 1)))
-            return -1;
-    }
-    if (res[Type::kLong] || res[Type::k5])
-        return 10000;     //1000不能随便改
-    if (res[Type::kFlex4] || res[Type::kBlock4] > 1)
-        return 3000;
-    if (res[Type::kBlock4] + res[Type::kFlex3] > 1)
-        return 1000;
-    if (res[Type::kBlock4] || res[Type::kFlex3])
-        return 200;
+    SumupTypeinfos(op_key, oppo_res);
+    if (has_forbid_) {
+        if (role == Role::kBlack) {
+            if (res[Type::k5] > 0)  return 10000;  //10000不能随便改
+            if (oppo_res[Type::kLong] || oppo_res[Type::k5] > 0)  return 5000;
 
-    //TODO: 对普通走法打分
-    return 0;
-}
+            if (res[Type::kFlex4] == 1) return 3000;
+            if (oppo_res[Type::kFlex4] > 0 || oppo_res[Type::kBlock4] > 1) return 1500;
 
-std::string Renju::Debug() {
-    std::string res;
-    fprintf(stderr, "   ");
-    for (int i = 0; i < size_; ++i) {
-        fprintf(stderr, "%-3d", i);
+            if (res[Type::kBlock4] == 1 && res[Type::kFlex3] == 1)  return 1000;
+            if (oppo_res[Type::kBlock4] > 0 && oppo_res[Type::kFlex3] > 0)  return 500;
+
+            if (res[Type::kLong] || (res[Type::k5] == 0 &&
+                (res[Type::kFlex4] > 1 || res[Type::kBlock4] > 1 || res[Type::kFlex3] > 1)))
+                return -1;
+        }
+        else {
+            if (res[Type::kLong] || res[Type::k5] > 0)
+                return 10000;     //10000不能随便改
+            if (oppo_res[Type::k5] > 0)
+                return 5000;
+
+            if (res[Type::kFlex4] > 0 || res[Type::kBlock4] > 1)
+                return 3000;
+            if (oppo_res[Type::kFlex4] == 1)
+                return 1500;
+
+            if (res[Type::kBlock4] > 0 && res[Type::kFlex3] > 0)
+                return 1000;
+            if (oppo_res[Type::kBlock4] ==1 && oppo_res[Type::kFlex3] == 1)
+                return 500;
+
+            if (res[Type::kBlock4] || res[Type::kFlex3])
+                return 200;
+        }
     }
-    fprintf(stderr, "\n");
-    for (int i = 0; i < size_; ++i) {
-        fprintf(stderr, "%-3d", i);
-        for (int j = 0; j < size_; ++j)
-            switch (Get(i, j)) {
-                case Pos::kBlack:
-                    fprintf(stderr, "%-3c", 'b');
-                    break;
-                case Pos::kWhite:
-                    fprintf(stderr, "%-3c", 'w');
-                    break;
-                default:
-                    fprintf(stderr, "%-3c", '_');
-                    break;
-            }
-        fprintf(stderr, "\n");
+    else {
+        if (res[Type::kLong] || res[Type::k5] > 0)
+            return 10000;     //10000不能随便改
+        if (oppo_res[Type::kLong] || oppo_res[Type::k5] > 0)
+            return 5000;
+
+        if (res[Type::kFlex4] > 0 || res[Type::kBlock4] > 1)
+            return 3000;
+        if (oppo_res[Type::kFlex4] > 0 || oppo_res[Type::kBlock4] > 1)
+            return 1500;
+
+        if (res[Type::kBlock4] > 0 &&  res[Type::kFlex3] > 0)
+            return 1000;
+        if (oppo_res[Type::kBlock4] > 0 && oppo_res[Type::kFlex3] > 0)
+            return 1000;
+
+        if (res[Type::kBlock4] || res[Type::kFlex3])
+            return 200;
     }
-    fprintf(stderr, "\n");
-    return res;
+
+    return 15 * res[Type::kBlock4]
+        + 15 * res[Type::kFlex3]
+        + 8 * res[Type::kBlock3]
+        + 8 * res[Type::kFlex2];
 }
 
 
