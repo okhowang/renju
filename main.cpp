@@ -81,7 +81,7 @@ void Process(rapidjson::Document &json)
     else cur_role = Renju::Role::kWhite;
 
     //auto pos = renju.GetNext(cur_role, 2);
-    auto pos = renju.Solve(cur_role, 2);
+    auto pos = renju.Solve(cur_role, 4);
     rapidjson::Value step;
     step.SetObject();
 	if (cur_role == Renju::Role::kBlack) 
@@ -112,9 +112,8 @@ int main(int argc, char** argv)
     else
         json.Parse(R"(
 
-{"head":{"type":1},"body":{"steps":[{"side":"b","x":"8","y":"8","time":"20161029121510"},{"side":"w","x":"9","y":"8","time":"20161029121510"},{"side":"b","x":"6","y":"6","time":"20161029121510"},{"side":"w","x":"6","y":"5","time":"20161029121510"},{"side":"b","x":"7","y":"7","time":"20161029121510"},{"side":"w","x":"5","y":"5","time":"20161029121510"},{"side":"b","x":"8","y":"6","time":"20161029121510"},{"side":"w","x":"3","y":"5","time":"20161029121510"},{"side":"b","x":"4","y":"5","time":"20161029121510"},{"side":"w","x":"5","y":"3","time":"20161029121510"},{"side":"b","x":"9","y":"7","time":"20161029121510"},{"side":"w","x":"4","y":"4","time":"20161029121510"},{"side":"b","x":"6","y":"2","time":"20161029121510"},{"side":"w","x":"2","y":"6","time":"20161029121510"},{"side":"b","x":"1","y":"7","time":"20161029121510"},{"side":"w","x":"5","y":"2","time":"20161029121510"},{"side":"b","x":"5","y":"4","time":"20161029121510"},{"side":"w","x":"3","y":"3","time":"20161029121510"},{"side":"b","x":"7","y":"5","time":"20161029121510"},{"side":"w","x":"10","y":"8","time":"20161029121510"},{"side":"b","x":"8","y":"4","time":"20161029121510"},{"side":"w","x":"5","y":"7","time":"20161029121510"},{"side":"b","x":"8","y":"7","time":"20161029121510"},{"side":"w","x":"8","y":"5","time":"20161029121510"},{"side":"b","x":"10","y":"7","time":"20161029121510"},{"side":"w","x":"1","y":"1","time":"20161029121510"},{"side":"b","x":"2","y":"2","time":"20161029121510"}],"size":15,"has_hand_cut":1}}"
+{"head":{"type":1,"result":0,"err_msg":"sucess"},"body":{"player_white":{"type":"Human","name":"sss","url":"sss","side":"w","team":"Human"},"player_black":{"type":".........","name":"okhowang_black","url":"http://133.130.100.186:81/cgi-bin/renju","side":"b","team":"........."},"start_time":"20161029_122347","size":15,"steps":[{"side":"b","x":8,"y":8,"time":"20160829201049","seq":0},{"side":"w","x":9,"y":8,"time":"20160829201053","seq":1}],"id":"9c8b6f2233aaf7757f804f75e1118a38","has_hand_cut":1,"invalid":null,"winner":null,"reason":null,"timeout":10}}
 
-w
 )");
     if (json.HasParseError())
     {

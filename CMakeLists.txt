@@ -13,7 +13,6 @@ set(SOURCE_FILES
 add_executable(renju ${SOURCE_FILES})
 
 install(TARGETS renju
-        CONFIGURATIONS Release
         DESTINATION ${CMAKE_INSTALL_PREFIX})
 
 add_executable(make_table make_table.cpp Renju.hpp)

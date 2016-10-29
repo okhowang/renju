@@ -553,7 +553,7 @@ std::pair<int, int> Renju::Solve(Role role, int depth) {
     return std::make_pair(best_move.x, best_move.y);
 }
 
-const int max_move_num = 100;
+const int max_move_num = 40;
 
 int  Renju::MinMaxSearch(Role role, int cur_depth, int alpha, int beta) {
     ++total_cnt;
