@@ -19,6 +19,8 @@ const int Renju::sign_list[2] = {-1, 1};
 #ifndef NDEBUG
 FILE *g_log_fp = fopen("log.txt", "w+");
 #define LOG(...)     Log(g_log_fp, __VA_ARGS__)
+#else
+#define LOG(...)
 #endif
 
 void Log(FILE *fp, const char *fmt, ...) {
@@ -541,6 +543,7 @@ std::pair<int, int> Renju::Solve(Role role, int depth) {
     total_cnt = 0;
     leaf_cnt = 0;
     max_depth = depth;   //最大深度
+    best_val = INT_MIN;
     for (int i = 2; i <= max_depth && best_val < 10000; i += 2) {
         max_iter_depth = i;
         best_val = MinMaxSearch(role, i, -10001, 10000);
@@ -550,7 +553,7 @@ std::pair<int, int> Renju::Solve(Role role, int depth) {
     return std::make_pair(best_move.x, best_move.y);
 }
 
-const int max_move_num = 3;
+const int max_move_num = 100;
 
 int  Renju::MinMaxSearch(Role role, int cur_depth, int alpha, int beta) {
     ++total_cnt;
@@ -558,6 +561,8 @@ int  Renju::MinMaxSearch(Role role, int cur_depth, int alpha, int beta) {
     std::vector<std::pair<int, int>> res;
     int max = INT_MIN;
     auto list = GenMoveList(role);
+    best_move.x = std::get<0>(list[0]);
+    best_move.y = std::get<1>(list[1]);
     if (list.size() > max_move_num)   list.erase(list.begin() + max_move_num, list.end());  //限制最多走法
 
     LOG("top level has %d moves:\n", list.size());
