@@ -5,6 +5,7 @@
 
 #include <tuple>
 #include <algorithm>
+#include  <stdarg.h>
 
 
 const int Renju::direct_list[4][2] = {
@@ -14,6 +15,23 @@ const int Renju::direct_list[4][2] = {
         {1, -1},
 };
 const int Renju::sign_list[2] = {-1, 1};
+
+#ifndef NDEBUG
+FILE* g_log_fp = fopen("log.txt", "w+");
+#define LOG(...)     Log(g_log_fp, __VA_ARGS__)
+#endif
+
+void Log(FILE* fp, const char* fmt, ...)
+{
+    char    fmt_buf[256];
+    snprintf(fmt_buf, 256, "%s", fmt);
+
+    va_list arg_ptr;
+    va_start(arg_ptr, fmt);
+    vfprintf(fp, fmt_buf, arg_ptr);
+    va_end(arg_ptr);
+    fflush(fp);
+}
 
 Renju::Renju(int size, bool forbid) : has_forbid_(forbid), size_(size),
                                       black_count_(0), white_count_(0), start_(std::chrono::system_clock::now()) {
@@ -25,6 +43,8 @@ Renju::Renju(int size, bool forbid) : has_forbid_(forbid), size_(size),
     frame.frame_y_max = INT_MIN;
     frame.frame_x_min = INT_MAX;
     frame.frame_y_min = INT_MAX;
+
+    has_near_.assign(size * size, 0);
 }
 
 Renju::~Renju() {
@@ -32,6 +52,22 @@ Renju::~Renju() {
 
 void Renju::SetPos(int x, int y, Pos role, bool update) {
     auto &pos = Get(x, y);
+    //update near by
+    if (role != Pos::kEmpty && pos == Pos::kEmpty) {
+        for (int i = x - 2; i <= x + 2; ++i)
+            for (int j = y - 2; j <= y + 2; ++j)
+                if ((i != x || j != y) &&
+                    IsValidPoint(i, j))
+                    has_near_[i * size_ + j]++;
+    }
+    else if (role == Pos::kEmpty && pos != Pos::kEmpty) {
+        for (int i = x - 2; i <= x + 2; ++i)
+            for (int j = y - 2; j <= y + 2; ++j)
+                if ((i != x || j != y) &&
+                    IsValidPoint(i, j))
+                    has_near_[i * size_ + j]--;
+    }
+
     switch (pos) {
         case Pos::kBlack:
             black_count_--;
@@ -53,8 +89,12 @@ void Renju::SetPos(int x, int y, Pos role, bool update) {
         default:
             break;
     }
+    if (role != Pos::kEmpty) {
+        last_move.x = x;
+        last_move.y = y;
+    }
     if (role != Pos::kEmpty && update) {
-        UpdatePosTypes(x, y);
+//        UpdatePosTypes(x, y);
         UpdateFrame(x, y);
     }
 }
@@ -77,7 +117,7 @@ void Renju::Init() {
 std::pair<int, int> Renju::GetNext(Role role, int deep) {
     if (role == Role::kBlack) {
         if (black_count_ == 0) {
-            //é»‘å­ç¬¬ä¸€æ‰‹
+            //ºÚ×ÓµÚÒ»ÊÖ
             return std::make_pair(size_ / 2, size_ / 2);
         }
         if (black_count_ == 1) {
@@ -97,15 +137,15 @@ std::pair<int, int> Renju::GetNext(Role role, int deep) {
     }
     else {
         if (white_count_ == 0) {
-            //ç™½å­ç¬¬ä¸€æ‰‹ä¸‹æ—è¾¹éšä¾¿ä¸€ä¸ª
+            //°××ÓµÚÒ»ÊÖÏÂÅÔ±ßËæ±ãÒ»¸ö
             auto &random = direct_list[rand() % 4];
             return std::make_pair(size_ / 2 + random[0], size_ / 2 + random[1]);
         }
     }
-    //è¿­ä»£åŠ æ·± å¦‚æœæ‰¾åˆ°èƒœç€å°±ç›´æ¥è¿”å›
+    //µü´ú¼ÓÉî Èç¹ûÕÒµ½Ê¤×Å¾ÍÖ±½Ó·µ»Ø
     for (int i = 0; i <= deep; i += 2) {
         auto res = GetNextImpl(role, i, deep);
-        //æœ€åä¸€å±‚ä¹Ÿç›´æ¥è¿”å›
+        //×îºóÒ»²ãÒ²Ö±½Ó·µ»Ø
         if (std::get<2>(res) == TypeValue::kValue5 || i == deep)
             return std::make_pair(std::get<0>(res), std::get<1>(res));
     }
@@ -124,13 +164,16 @@ std::tuple<int, int, int> Renju::GetNextImpl(Role role, int deep, int check_deep
         int y = std::get<1>(p);
         SetPos(x, y, GetByRole(role));
         int result = GetPosResult(x, y);
+        if (result >= 10000)  //ÒÑ¾­Ó®ÁË£¬Ö±½Ó·µ»Ø
+            return std::make_tuple(x, y, 10000000);
+
         int v;
-        //å¦‚æœç¦æ‰‹å’Œå‹åˆ©ä¹Ÿä¸ç”¨å†å¾€ä¸‹æœäº†
+        //Èç¹û½ûÊÖºÍ„ÙÀûÒ²²»ÓÃÔÙÍùÏÂËÑÁË
         if (deep > 0 && result != 1 && result != -1) {
             auto res = GetNextImpl(GetOpponent(role), deep - 1, check_deep, -beta, -alpha);
             v = -std::get<2>(res);
         }
-            //æ™®é€šæœç´¢åˆ°å¤´äº†çš„è¯ å°è¯•æœæ€æ‹›
+            //ÆÕÍ¨ËÑË÷µ½Í·ÁËµÄ»° ³¢ÊÔËÑÉ±ÕĞ
         else if (deep == 0 && check_deep > 0 && result == 2) {
             auto res = GetNextImpl(GetOpponent(role), 0, check_deep - 1, -beta, -alpha);
             v = -std::get<2>(res);
@@ -142,9 +185,9 @@ std::tuple<int, int, int> Renju::GetNextImpl(Role role, int deep, int check_deep
         if (v > max) {
             max = v;
             if (max >= beta)
-                return std::make_tuple(x, y, max); //è¿™é‡Œæ¯”betaå¤§ å¯ä»¥å¿½ç•¥ç»“æœç›´æ¥è¿”å›
+                return std::make_tuple(x, y, max); //ÕâÀï±Èbeta´ó ¿ÉÒÔºöÂÔ½á¹ûÖ±½Ó·µ»Ø
             if (max > alpha)
-                alpha = max; //æ›´æ–°alphaå€¼
+                alpha = max; //¸üĞÂalphaÖµ
             res.clear();
             res.emplace_back(x, y);
         }
@@ -161,7 +204,7 @@ std::tuple<int, int, int> Renju::GetNextImpl(Role role, int deep, int check_deep
 bool Renju::IsValidPoint(int x, int y) {
     return x >= 0 && x < size_ && y >= 0 && y < size_;
 }
-//å–æœ€å¤§å€¼çš„ç‚¹çš„å€¼
+//È¡×î´óÖµµÄµãµÄÖµ
 
 uint32_t Renju::GetKey(Role role, int x, int y, int direct) {
     uint32_t key = kSelf << 8;
@@ -209,38 +252,35 @@ Renju::Pos Renju::GetByRole(Role role) {
     return Pos::kWhite;
 }
 
-bool Renju::HasNear(int x, int y, const int distance) {
-    for (int i = x - distance; i <= x + distance; ++i)
-        for (int j = y - distance; j <= y + distance; ++j)
-            if ((i != x || j != y) &&
-                IsValidPoint(i, j) && Get(i, j) != Pos::kEmpty)
-                return true;
-    return false;
+bool Renju::HasNear(int x, int y) {
+	for (int i = x - 2; i <= x + 2; ++i)
+		for (int j = y - 2; j <= y + 2; ++j)
+			if ((i != x || j != y) &&
+				IsValidPoint(i, j) && Get(i, j) != Pos::kEmpty)
+				return true;
+	return false;
+    return has_near_[x * size_ + y];
 }
 
 std::vector<std::tuple<int, int, int> > Renju::GenMoveList(Pos pos) {
-    std::vector<std::tuple<int, int, int> > res1;
-    std::vector<std::tuple<int, int, int> > res2;
+    std::vector<std::tuple<int, int, int> > res;
     for (int x = std::max(0, frame.frame_x_min - 2); x < std::min(size_, frame.frame_x_max + 3); ++x)
         for (int y = std::max(0, frame.frame_y_min - 2); y < std::min(size_, frame.frame_y_max + 3); ++y) {
             if (Get(x, y) != Pos::kEmpty)continue;
-            if (HasNear(x, y, 1)) {
-                res1.emplace_back(x, y, 0);
-            }
-            else if (HasNear(x, y, 2)) {
-                res2.emplace_back(x, y, 0);
+            if (HasNear(x, y)) {
+                res.emplace_back(x, y, 0);
             }
         }
-    res1.insert(res1.end(), std::make_move_iterator(res2.begin()), std::make_move_iterator(res2.end()));
-    for (auto &p : res1) {
+    for (auto &p : res) {
         SetPos(std::get<0>(p), std::get<1>(p), pos);
         std::get<2>(p) = GetPosResult(std::get<0>(p), std::get<1>(p));
         SetPos(std::get<0>(p), std::get<1>(p), Pos::kEmpty);
     }
-    std::sort(res1.begin(), res1.end(), [this](const std::tuple<int, int, int> &a, const std::tuple<int, int, int> &b) -> bool {
-        return std::get<2>(a) > std::get<2>(b);
-    });
-    return res1;
+    std::sort(res.begin(), res.end(),
+              [this](const std::tuple<int, int, int> &a, const std::tuple<int, int, int> &b) -> bool {
+                  return std::get<2>(a) > std::get<2>(b);
+              });
+    return res;
 }
 
 Renju::Role Renju::GetOpponent(Role role) {
@@ -269,6 +309,72 @@ void  Renju::UpdatePosTypes(int x, int y) {
     }
 }
 
+void Renju::DumpBoard(FILE* fp) { 
+    LOG("   ");
+    for (int i = 0; i < size_; ++i) {
+        LOG("%-3d", i);
+    }
+    LOG("\n");
+    for (int i = 0; i < size_; ++i) {
+        LOG("%-3d", i);
+        for (int j = 0; j < size_; ++j)
+            switch (Get(i, j)) {
+            case Pos::kBlack:
+                LOG("%-3c", 'b');
+                break;
+            case Pos::kWhite:
+                LOG("%-3c", 'w');
+                break;
+            default:
+                LOG("%-3c", '-');
+                break;
+            }
+        LOG("\n");
+    }
+    LOG("\n");
+}
+
+bool IsDefaultPosType(Renju::PosType type) {
+    bool ret = true;
+    for (int i = 0; i < 2; ++i)
+        for (int j = 0; j < 4; ++j)
+        {
+            if (type.typeinfo[i][j] != Renju::Type::kDefault)
+            {
+                ret = false;
+                break;
+            }
+        }
+    return ret;
+}
+
+void Renju::DumpAllPosTypes() {
+    LOG("\n\n");
+    PosType  default_pos_type = { Type::kDefault,Type::kDefault,
+                                    Type::kDefault,Type::kDefault,
+                                    Type::kDefault,Type::kDefault,
+                                    Type::kDefault,Type::kDefault };
+    for (int i = 0; i < size_; ++i) 
+        for (int j = 0; j < size_; ++j)  {
+            PosType pos_type = GetPosType(i, j);
+            if (IsDefaultPosType(pos_type))  continue;
+
+            LOG("pos(%d, %d) for black: \n", i, j);
+            for (int dir = 0; dir < 4; ++dir) {
+                if (pos_type.typeinfo[0][dir] != kDefault) {
+                    LOG("dir(%d) ---- %d\n", dir, (int)pos_type.typeinfo[0][dir]);
+                }
+            }
+
+            LOG("pos(%d, %d) for white: \n", i, j);
+            for (int dir = 0; dir < 4; ++dir) {
+                if (pos_type.typeinfo[1][dir] != kDefault) {
+                    LOG("dir(%d) ---- %d\n", dir, (int)pos_type.typeinfo[1][dir]);
+                }
+            }
+    }
+}
+
 void  Renju::SumupTypeinfos(Role role, int x, int y, int res[Type::kMax]) {
     Type type[4];
 //    type[0] = GetPosType(x, y).typeinfo[role == Role::kBlack ? 0 : 1][0];
@@ -294,7 +400,7 @@ int   Renju::Score(Role role) {
             auto pos = Get(x, y);
             if (pos == Pos::kEmpty) continue;
 
-            if (IsSame(role, pos))     //åªå¯¹æ£‹ç›˜ä¸Šå·²æœ‰çš„å­è¿›è¡Œç®—åˆ†
+            if (IsSame(role, pos))     //Ö»¶ÔÆåÅÌÉÏÒÑÓĞµÄ×Ó½øĞĞËã·Ö
             {
                 int res[Type::kMax] = {0};
                 SumupTypeinfos(role, x, y, res);
@@ -336,11 +442,21 @@ int Renju::GetPosResult(int x, int y) {
     int res[Type::kMax] = {0};
     SumupTypeinfos(pos == Pos::kBlack ? Role::kBlack : Role::kWhite, x, y, res);
     if (has_forbid_ && pos == Pos::kBlack) {
+        if (res[Type::k5] > 0)  return 10000;  //1000²»ÄÜËæ±ã¸Ä
+        if (res[Type::kFlex4] == 1) return 3000;
         if (res[Type::kLong] || (res[Type::k5] == 0 && (res[Type::kFlex4] > 1 || res[Type::kFlex3] > 1)))
             return -1;
     }
-    if (res[Type::kLong] || res[Type::k5] || res[Type::kFlex4] || (res[Type::kBlock4] + res[Type::kFlex3] > 1))return 1;
-    if (res[Type::kBlock4] || res[Type::kFlex3])return 2;
+    if (res[Type::kLong] || res[Type::k5])
+        return 10000;     //1000²»ÄÜËæ±ã¸Ä
+    if (res[Type::kFlex4] || res[Type::kBlock4] > 1)
+        return 3000;
+    if (res[Type::kBlock4] + res[Type::kFlex3] > 1)
+        return 1000;
+    if (res[Type::kBlock4] || res[Type::kFlex3])
+        return 200;
+
+    //TODO: ¶ÔÆÕÍ¨×ß·¨´ò·Ö
     return 0;
 }
 
@@ -369,4 +485,121 @@ std::string Renju::Debug() {
     }
     fprintf(stderr, "\n");
     return res;
+}
+
+
+std::pair<int, int> Renju::Solve(Role role, int depth) {
+    if (role == Role::kBlack) {
+        if (black_count_ == 0) {
+            //ºÚ×ÓµÚÒ»ÊÖ
+            return std::make_pair(size_ / 2, size_ / 2);
+        }
+        if (black_count_ == 1) {
+            //TODO: ºÚ×ÓµÚ¶şÊÖ£¬ÓÅÏÈ¼¶µÍ
+        }
+    }
+    else {
+        if (white_count_ == 0) {
+            //TODO: °××ÓÒª²Î¿¼ºÚ×ÓÎ»ÖÃ
+            //°××ÓµÚÒ»ÊÖÏÂÅÔ±ßËæ±ãÒ»¸ö
+            auto &random = direct_list[rand() % 4];
+            return std::make_pair(size_ / 2 + random[0], size_ / 2 + random[1]);
+        }
+    }
+
+    total_cnt = 0;
+    leaf_cnt = 0;
+    max_depth = depth;   //×î´óÉî¶È
+    for (int i = 2; i <= max_depth && best_val < 10000; i += 2) {
+        max_iter_depth = i;
+        best_val = MinMaxSearch(role, i, -10001, 10000);
+    }
+
+    LOG("solved best move: (%d, %d)\n", best_move.x, best_move.y);
+    return std::make_pair(best_move.x, best_move.y);
+}
+
+const int max_move_num = 3;
+
+int  Renju::MinMaxSearch(Role role, int cur_depth, int alpha, int beta) {
+    ++total_cnt;
+
+    std::vector<std::pair<int, int>> res;
+    int max = INT_MIN;
+    auto list = GenMoveList(role == Role::kBlack ? Pos::kBlack : Pos::kWhite);
+    if (list.size() > max_move_num)   list.erase(list.begin() + max_move_num, list.end());  //ÏŞÖÆ×î¶à×ß·¨
+
+    LOG("top level has %d moves:\n", list.size());
+    for (auto& p : list) {
+        LOG("top-move (%d, %d) val=%d\n", std::get<0>(p), std::get<1>(p), std::get<2>(p));
+    }
+
+    int val;
+    for (auto &p : list) {
+        int x = std::get<0>(p);
+        int y = std::get<1>(p);
+        SetPos(x, y, GetByRole(role));
+
+        val = -AlphaBetaSearch(GetOpponent(role), cur_depth - 1, -beta, -alpha);
+        LOG("top level move (%d, %d) score=%d\n", x, y, val);
+
+        SetPos(x, y, Pos::kEmpty);
+
+        if (val >= beta) {
+            best_move.x = x;
+            best_move.y = y;
+            return val;
+        }
+
+        if (val > alpha) {
+            best_move.x = x;
+            best_move.y = y;
+            alpha = val;
+        }
+    }
+
+    return alpha;   //TODO?    
+}
+
+int  Renju::AlphaBetaSearch(Role role, int cur_depth, int alpha, int beta)
+{
+    ++total_cnt;
+   
+    //TODO: ¼ì²é¶Ô·½ÊÇ·ñÒÑÓ®
+
+    if (0 == cur_depth) {
+        ++leaf_cnt;
+        return Score(role);
+    }
+
+    auto list = GenMoveList(role == Role::kBlack ? Pos::kBlack : Pos::kWhite);
+    if (list.size() > max_move_num)   list.erase(list.begin() + max_move_num, list.end());  //ÏŞÖÆ×î¶à×ß·¨
+
+    LOG("%d level moves:\n", max_iter_depth - cur_depth);
+    for (auto& p : list) {
+        LOG("%d-move (%d, %d) val=%d\n", max_iter_depth - cur_depth, std::get<0>(p), std::get<1>(p), std::get<2>(p));
+    }
+
+    int val;
+    for (auto &p : list) {
+        int x = std::get<0>(p);
+        int y = std::get<1>(p);
+        SetPos(x, y, GetByRole(role));
+
+        val = -AlphaBetaSearch(GetOpponent(role), cur_depth - 1, -beta, -alpha);
+        LOG("%d level move (%d, %d) score=%d\n", max_iter_depth - cur_depth, x, y, val);
+
+        SetPos(x, y, Pos::kEmpty);
+
+        if (val >= beta) {
+            LOG("cut by val(%d) >= beta(%d)\n", val, beta);
+            return val;
+        }
+
+        if (val > alpha) {
+            alpha = val;
+        }
+    }
+
+    return alpha;
 }

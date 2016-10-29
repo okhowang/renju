@@ -26,13 +26,13 @@ public:
     };
 
     enum TypeValue {
-        kValue5 = 100000,
-        kValueFlex4 = 10000,
-        kValueBlock4 = 1000,
-        kValueFlex3 = 1000,
-        kValueBlock3 = 100,
-        kValueFlex2 = 100,
-        kValueBlock2 = 10,
+        kValue5 = 2000,
+        kValueFlex4 = 1000,
+        kValueBlock4 = 200,
+        kValueFlex3 = 120,
+        kValueBlock3 = 30,
+        kValueFlex2 = 20,
+        kValueBlock2 = 4,
         kValueDefault = 1,
         kValueForbid = -100000,
     };
@@ -54,6 +54,21 @@ public:
         kOppnonent = 2
     };
 
+    typedef struct  _MOVE{
+        _MOVE() { x = 0; y = 0; }
+        _MOVE(int tx, int ty) : x(tx), y(ty) {}
+        int x;
+        int y;
+    } MOVE;
+
+    MOVE  best_move;
+    int   best_val;
+    int   total_cnt;  //搜索总次数
+    int   leaf_cnt;   //叶子节点个数
+    
+    MOVE  last_move;  //上一次的走法
+    MOVE  last_self_move;  //上一次自己的走法
+
     Renju(int size, bool forbid);
 
     virtual ~Renju();
@@ -66,6 +81,23 @@ public:
 
     //计算下一步
     std::pair<int, int> GetNext(Role role, int deep = 2);
+
+    //新接口：计算下一步
+    std::pair<int, int> Solve(Role role, int deep = 2);
+
+    int  MinMaxSearch(Role role, int cur_depth, int alpha, int beta);
+    int  AlphaBetaSearch(Role role, int cur_depth, int alpha, int beta);
+
+    //Debug Functions
+    void    DumpBoard(FILE* fp);
+    void    DumpAllPosTypes();
+
+    typedef struct {
+        Type typeinfo[2][4]; //双方视角, 4个方向 
+    } PosType; //某一点的棋型信息
+
+    int  max_depth;
+    int  max_iter_depth;
 
 private:
     std::tuple<int, int, int> GetNextImpl(Role role, int deep, int check_deep, int alpha = INT_MIN + 1,
@@ -91,13 +123,11 @@ private:
 
     std::vector<std::tuple<int, int, int> > GenMoveList(Pos pos);
 
-    bool HasNear(int x, int y, const int distance = 2);
+    bool HasNear(int x, int y);
 
     Role GetOpponent(Role role);
 
-    typedef struct {
-        Type typeinfo[2][4]; //双方视角, 4个方向 
-    } PosType; //某一点的棋型信息
+    
 
     std::vector<PosType> pos_types;
 
@@ -148,6 +178,9 @@ private:
 //        return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().- start_).count() > 9000;
         return true;
     }
+
+
+    std::vector<uint8_t> has_near_;
 };
 
 #endif /* RENJU_HPP */

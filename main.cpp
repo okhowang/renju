@@ -80,7 +80,8 @@ void Process(rapidjson::Document &json)
         cur_role = Renju::Role::kBlack;
     else cur_role = Renju::Role::kWhite;
 
-    auto pos = renju.GetNext(cur_role, 2);
+    //auto pos = renju.GetNext(cur_role, 2);
+    auto pos = renju.Solve(cur_role, 2);
     rapidjson::Value step;
     step.SetObject();
 	if (cur_role == Renju::Role::kBlack) 
@@ -110,8 +111,12 @@ int main(int argc, char** argv)
     }
     else
         json.Parse(R"(
-// {"head":{"type":1,"result":0,"err_msg":"sucess"},"body":{"player_white":{"type":"Human","name":"rt","url":"rt","side":"w","team":"Human"},"player_black":{"type":"\u54d4\u4e86\u72d7","name":"okhowang_black","url":"http:\/\/133.130.100.186:81\/cgi-bin\/renju","side":"b","team":"\u54d4\u4e86\u72d7"},"start_time":"20161028_231503","size":15,"steps":[{"side":"b","x":8,"y":8,"time":"20160729071005","seq":0},{"side":"w","x":8,"y":7,"time":"20160729071007","seq":1}],"id":"8cb29cfae3e6e5bcb05a9110c45f2399","has_hand_cut":1,"invalid":null,"winner":null,"reason":null,"timeout":10}}
-{"head":{"type":1,"result":0,"err_msg":"sucess"},"body":{"player_white":{"type":"Human","name":"rt","url":"rt","side":"w","team":"Human"},"player_black":{"type":"\u54d4\u4e86\u72d7","name":"okhowang_black","url":"http:\/\/133.130.100.186:81\/cgi-bin\/renju","side":"b","team":"\u54d4\u4e86\u72d7"},"start_time":"20161028_231503","size":15,"steps":null,"id":"8cb29cfae3e6e5bcb05a9110c45f2399","has_hand_cut":1,"invalid":null,"winner":null,"reason":null,"timeout":10}}
+
+
+{"head":{"type":1},"body":{"steps":[{"side":"b","x":"8","y":"8","time":"20161029004753"},{"side":"w","x":"8","y":"9","time":"20161029004754"}],"size":15,"has_hand_cut":1}}"
+
+
+
 )");
     if (json.HasParseError())
     {
