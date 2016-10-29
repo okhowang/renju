@@ -27,9 +27,9 @@ public:
 
     enum TypeValue {
         kValue5 = 2000,
-        kValueFlex4 = 1000,
-        kValueBlock4 = 200,
-        kValueFlex3 = 120,
+        kValueFlex4 = 1500,
+        kValueBlock4 = 230,
+        kValueFlex3 = 150,
         kValueBlock3 = 30,
         kValueFlex2 = 20,
         kValueBlock2 = 4,

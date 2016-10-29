@@ -562,7 +562,12 @@ int  Renju::MinMaxSearch(Role role, int cur_depth, int alpha, int beta) {
     int max = INT_MIN;
     auto list = GenMoveList(role);
     best_move.x = std::get<0>(list[0]);
-    best_move.y = std::get<1>(list[1]);
+    best_move.y = std::get<1>(list[0]);
+    if (std::get<2>(list[0]) >= 10000)
+    {
+        return 10000;
+    }
+
     if (list.size() > max_move_num)   list.erase(list.begin() + max_move_num, list.end());  //限制最多走法
 
     LOG("top level has %d moves:\n", list.size());
@@ -608,6 +613,10 @@ int  Renju::AlphaBetaSearch(Role role, int cur_depth, int alpha, int beta) {
     }
 
     auto list = GenMoveList(role);
+    if (!list.empty() && std::get<2>(list[0]) >= 10000)
+    {
+        return 10000;
+    }
     if (list.size() > max_move_num)   list.erase(list.begin() + max_move_num, list.end());  //限制最多走法
 
     LOG("%d level moves:\n", max_iter_depth - cur_depth);
