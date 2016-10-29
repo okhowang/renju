@@ -54,20 +54,25 @@ public:
         kOppnonent = 2
     };
 
-    typedef struct  _MOVE{
-        _MOVE() { x = 0; y = 0; }
-        _MOVE(int tx, int ty) : x(tx), y(ty) {}
+    typedef struct _MOVE {
+        _MOVE() {
+            x = 0;
+            y = 0;
+        }
+
+        _MOVE(int tx, int ty) : x(tx), y(ty) { }
+
         int x;
         int y;
     } MOVE;
 
-    MOVE  best_move;
-    int   best_val;
-    int   total_cnt;  //搜索总次数
-    int   leaf_cnt;   //叶子节点个数
-    
-    MOVE  last_move;  //上一次的走法
-    MOVE  last_self_move;  //上一次自己的走法
+    MOVE best_move;
+    int best_val;
+    int total_cnt;  //搜索总次数
+    int leaf_cnt;   //叶子节点个数
+
+    MOVE last_move;  //上一次的走法
+    MOVE last_self_move;  //上一次自己的走法
 
     Renju(int size, bool forbid);
 
@@ -85,19 +90,21 @@ public:
     //新接口：计算下一步
     std::pair<int, int> Solve(Role role, int deep = 2);
 
-    int  MinMaxSearch(Role role, int cur_depth, int alpha, int beta);
-    int  AlphaBetaSearch(Role role, int cur_depth, int alpha, int beta);
+    int MinMaxSearch(Role role, int cur_depth, int alpha, int beta);
+
+    int AlphaBetaSearch(Role role, int cur_depth, int alpha, int beta);
 
     //Debug Functions
-    void    DumpBoard(FILE* fp);
-    void    DumpAllPosTypes();
+    void DumpBoard(FILE *fp);
+
+    void DumpAllPosTypes();
 
     typedef struct {
         Type typeinfo[2][4]; //双方视角, 4个方向 
     } PosType; //某一点的棋型信息
 
-    int  max_depth;
-    int  max_iter_depth;
+    int max_depth;
+    int max_iter_depth;
 
 private:
     std::tuple<int, int, int> GetNextImpl(Role role, int deep, int check_deep, int alpha = INT_MIN + 1,
@@ -121,13 +128,12 @@ private:
                (pos == Pos::kWhite && role == Role::kWhite);
     }
 
-    std::vector<std::tuple<int, int, int> > GenMoveList(Pos pos);
+    std::vector<std::tuple<int, int, int> > GenMoveList(Role role);
 
     bool HasNear(int x, int y);
 
     Role GetOpponent(Role role);
 
-    
 
     std::vector<PosType> pos_types;
 
@@ -139,7 +145,7 @@ private:
 
     Renju::Type TypeLine(Role role, int x, int y, int d); //获取点(x,y)某一方向上的棋型信息
     void UpdatePosTypes(int x, int y); //更新点(x,y)附近的棋型信息
-    void SumupTypeinfos(Role role, int x, int y, int res[Type::kMax]);
+    void SumupTypeinfos(uint32_t key[4], int res[Type::kMax]);
 
     int Score(Role role);
 
@@ -168,7 +174,7 @@ private:
 
 
     //判斷一個子是否勝利 或 禁手 剪枝用
-    int GetPosResult(int x, int y);
+    int GetPosResult(uint32_t key[4], Role role);
 
     std::string Debug();
 
